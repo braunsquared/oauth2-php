@@ -427,7 +427,7 @@ class OAuth2 {
             throw new OAuth2AuthenticateException(self::HTTP_UNAUTHORIZED, $tokenType, $realm, self::ERROR_INVALID_GRANT, 'Malformed token (missing "expires" or "client_id")', $scope);
 
         // Check token expiration (expires is a mandatory paramter)
-        if (isset($token["expires"]) && time() > $token["expires"])
+        if (isset($token["expires"]) && time() > $token["expires"] && $token['expires'] != 0)
             throw new OAuth2AuthenticateException(self::HTTP_UNAUTHORIZED, $tokenType, $realm, self::ERROR_INVALID_GRANT, 'The access token provided has expired.', $scope);
 
         // Check scope, if provided
