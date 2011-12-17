@@ -697,15 +697,14 @@ class OAuth2 {
             throw new OAuth2ServerException(self::HTTP_BAD_REQUEST, self::ERROR_INVALID_SCOPE);
 
         $user_id = isset($stored['user_id']) ? $stored['user_id'] : null;
-        $expires = isset($input['ext']['expires']) ? $input['ext']['expires'] : $this->getVariable(self::CONFIG_ACCESS_LIFETIME);
-        $token = $this->createAccessToken($client[0], $user_id, $stored['scope'], $expires);
+        $token = $this->createAccessToken($client[0], $user_id, $stored['scope']);
 
-        return $token;
+        return array('token' => $token, 'grant' => $stored);
     }
     
     public function sendAccessToken($token) {
         $this->sendJsonHeaders();
-        echo json_encode($token);
+        echo json_encode($token['token']);
         exit;
     }
 
@@ -817,7 +816,14 @@ class OAuth2 {
             throw new OAuth2RedirectException($input["redirect_uri"], self::ERROR_INVALID_SCOPE, NULL, $input["state"]);
 
         // Return retrieved client details together with input
-        return ($input + $stored);
+        $result = $input + $stored;
+        return array(
+            'client_id' => $result['client_id'],
+            'response_type' => $result['response_type'],
+            'redirect_uri' => $result['redirect_uri'],
+            'state' => $result['state'],
+            'scope' => $result['scope']
+        );
     }
 
     /**
@@ -969,7 +975,7 @@ class OAuth2 {
         $this->storage->setAccessToken($token["access_token"], $client_id, $user_id, $expires, $scope);
 
         // Issue a refresh token also, if we support them
-        if ($this->storage instanceof IOAuth2RefreshTokens) {
+        if ($this->storage instanceof IOAuth2RefreshTokens && $this->getVariable(self::CONFIG_REFRESH_LIFETIME) > 0) {
             $token["refresh_token"] = $this->genAccessToken();
             $this->storage->setRefreshToken($token["refresh_token"], $client_id, $user_id, time() + $this->getVariable(self::CONFIG_REFRESH_LIFETIME), $scope);
 
