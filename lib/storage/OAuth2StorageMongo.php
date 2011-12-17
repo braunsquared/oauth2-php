@@ -25,7 +25,7 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
     /**
      * @var Mongo
      */
-    private $db;
+    protected $db;
 
     /**
      * Implements OAuth2::__construct().
@@ -44,7 +44,7 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
     /**
      * Handle Mongo exceptional cases.
      */
-    private function handleException($e) {
+    protected function handleException($e) {
         throw $e;
     }
 
@@ -96,9 +96,9 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
     public function getClientDetails($client_id) {
         try {
             $result = $this->db->{self::COLLECTION_CLIENTS}->findOne(
-                    array("_id" => $client_id), array('redirect_uri')
+                array("_id" => $client_id)
             );
-            return @array('redirect_uri' => $result['redirect_uri']);
+            return $result;
         } catch (MongoException $e) {
             $this->handleException($e);
         }
@@ -239,15 +239,6 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
             $collection = $isRefresh ? self::COLLECTION_REFRESH : self::COLLECTION_TOKENS;
 
             $result = $this->db->$collection->findOne(array('_id' => $token));
-            return $result;
-        } catch (MongoException $e) {
-            $this->handleException($e);
-        }
-    }
-    
-    protected function getTokenByClientAndUser($client_id, $user_id) {
-        try {
-            $result = $this->db->{self::COLLECTION_TOKENS}->findOne(array('client_id' => $client_id, 'user_id' => $user_id));
             return $result;
         } catch (MongoException $e) {
             $this->handleException($e);
