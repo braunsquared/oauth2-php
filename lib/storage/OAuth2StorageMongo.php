@@ -117,6 +117,31 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
     public function setAccessToken($oauth_token, $client_id, $user_id, $expires, $scope = NULL) {
         $this->setToken($oauth_token, $client_id, $user_id, $expires, $scope, FALSE);
     }
+    
+    /**
+     * @see IOAuth2Storage::unsetAccessToken()
+     */
+    public function invalidateAccessToken($oauth_token) {
+        try {
+            $this->db->{self::COLLECTION_TOKENS}->update(
+                    array('_id' => $oauth_token), 
+                    array('$set' => array('expires' => 1)),
+                    array('safe' => TRUE, 'upsert' => FALSE, 'multiple' => FALSE)
+            );
+        } catch (MongoException $e) {
+            $this->handleException($e);
+        }
+    }
+    
+    /**
+     * Associates an arbitrary piece of data with a token for later reference.
+     * 
+     * @param type $oauth_token the token
+     * @param type $data the data to associate
+     */
+    public function setAccessTokenData($oauth_token, $data) {
+        return $this->setTokenData($oauth_token, $data, FALSE);
+    }
 
     /**
      * @see IOAuth2Storage::getRefreshToken()
@@ -241,6 +266,23 @@ class OAuth2StorageMongo implements IOAuth2GrantUser, IOAuth2GrantCode, IOAuth2R
             $result = $this->db->$collection->findOne(array('_id' => $token));
             return $result;
         } catch (MongoException $e) {
+            $this->handleException($e);
+        }
+    }
+    
+    protected function setTokenData($token, $data, $isRefresh = TRUE) {
+        try {
+            $collection = $isRefresh ? self::COLLECTION_REFRESH : self::COLLECTION_TOKENS;
+
+            $result = $this->db->$collection->update(
+                    array('_id' => $token),
+                    array('$set' => array(
+                        'data' => $data
+                    )),
+                    array('safe' => TRUE, 'multiple' => FALSE, 'upsert' => FALSE)
+            );
+            return $result['ok'];
+        } catch(MongoException $e) {
             $this->handleException($e);
         }
     }
